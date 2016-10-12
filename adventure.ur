@@ -191,46 +191,47 @@ in
 end
 
 (* Render the game state as XML/HTML. *)
-fun render (gs : gameState) (sgs : source gameState) : xbody =
-let
-    fun cols (row : int) (col : int) : xtr = 
-        let
-            val playerIsHere : bool = (gs.Position = (col, row))
-            val stuffHere : list string = lookup' (col, row) [] gs.Field
-            val content : string = 
-                if playerIsHere then "P" 
-                else case stuffHere of 
-                | [] => ""
-                | _ => "x"
-        in
-            if col < fieldWidth - 1
-            then (<xml><td>{[content]}</td>{cols row (col + 1)}</xml>)
-            else (<xml><td>{[content]}</td></xml>)
-        end
-    fun rows (row : int) : xtable = 
-        if row < fieldHeight - 1
-        then (<xml><tr>{cols row 0}</tr>{rows (row + 1)}</xml>)
-        else (<xml><tr>{cols row 0}</tr></xml>)
-    val stuffHere : list string = lookup' gs.Position [] gs.Field
-in
-    <xml>
-    <table border={1}>{rows 0}</table>
-    <br/>
-    <button value="Left"  onclick={fn _ => set sgs (go gs (-1, 0))}/>
-    <button value="Right" onclick={fn _ => set sgs (go gs (1, 0))}/>
-    <button value="Up"    onclick={fn _ => set sgs (go gs (0, -1))}/>
-    <button value="Down"  onclick={fn _ => set sgs (go gs (0, 1))}/>
-    <br/>
-    <p>Message: {[gs.Message]}</p>
-    <p>Here is:</p> {case stuffHere of 
-        | [] => <xml>Nothing</xml>
-        | _ => toButtons sgs stuffHere processGet}
-    <p>You have:</p> {case gs.Stuff of 
-        | [] => <xml>Nothing</xml>
-        | _ => toButtons sgs gs.Stuff processPut}
-    <p>You say: {[gs.Statement]}</p>
-    </xml> 
-end
+fun render (sgs : source gameState) : signal xbody =
+    gs <- signal sgs;
+    return let
+        fun cols (row : int) (col : int) : xtr = 
+            let
+                val playerIsHere : bool = (gs.Position = (col, row))
+                val stuffHere : list string = lookup' (col, row) [] gs.Field
+                val content : string = 
+                    if playerIsHere then "P" 
+                    else case stuffHere of 
+                    | [] => ""
+                    | _ => "x"
+            in
+                if col < fieldWidth - 1
+                then (<xml><td>{[content]}</td>{cols row (col + 1)}</xml>)
+                else (<xml><td>{[content]}</td></xml>)
+            end
+        fun rows (row : int) : xtable = 
+            if row < fieldHeight - 1
+            then (<xml><tr>{cols row 0}</tr>{rows (row + 1)}</xml>)
+            else (<xml><tr>{cols row 0}</tr></xml>)
+        val stuffHere : list string = lookup' gs.Position [] gs.Field
+    in
+        <xml>
+        <table border={1}>{rows 0}</table>
+        <br/>
+        <button value="Left"  onclick={fn _ => set sgs (go gs (-1, 0))}/>
+        <button value="Right" onclick={fn _ => set sgs (go gs (1, 0))}/>
+        <button value="Up"    onclick={fn _ => set sgs (go gs (0, -1))}/>
+        <button value="Down"  onclick={fn _ => set sgs (go gs (0, 1))}/>
+        <br/>
+        <p>Message: {[gs.Message]}</p>
+        <p>Here is:</p> {case stuffHere of 
+            | [] => <xml>Nothing</xml>
+            | _ => toButtons sgs stuffHere processGet}
+        <p>You have:</p> {case gs.Stuff of 
+            | [] => <xml>Nothing</xml>
+            | _ => toButtons sgs gs.Stuff processPut}
+        <p>You say: {[gs.Statement]}</p>
+        </xml> 
+    end
 
 (* Mapping of key codes to directions. *)
 val directions : list (int * position) = 
@@ -245,8 +246,8 @@ fun main () : transaction page =
     input <- source initializeGame.Statement;
     return <xml>
         <head>
-         <title>Adventure</title>
-         <link rel="stylesheet" type="text/css" href="/Adventure/style.css"/>
+            <title>Adventure</title>
+            <link rel="stylesheet" type="text/css" href="/Adventure/style.css"/>
         </head>
         <body
         onkeydown={fn ev => (*alert ("Code " ^ show ev.KeyCode) }*)
@@ -255,9 +256,7 @@ fun main () : transaction page =
             case lookup (ev.KeyCode + naughtyDebug (show ev.KeyCode)) directions of
                 | None => return ()
                 | Some direction => set state (go s direction)}>
-        <dyn signal={
-            s <- signal state;
-            return (render s state)} />
+        <dyn signal={render state} />
         <ctextbox source={input} onkeypress={fn ev => 
             if ev.KeyCode = keyReturn then
                 s <- get state; 

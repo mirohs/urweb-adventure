@@ -12,7 +12,6 @@ val removeAll : a ::: Type -> eq a -> list a -> a -> list a
 val removeAllFrom : a ::: Type -> eq a -> a -> list a -> list a
 val replace : a ::: Type -> eq a -> a -> a -> list a -> list a
 val toString : a ::: Type -> show a -> list a -> string
-(*val show : a ::: Type -> show a -> show (list a)*)
 val show_list : a ::: Type -> show a -> show (list a)
 val toXml : a ::: Type -> show a -> list a -> xbody
 

@@ -1,0 +1,21 @@
+body {
+    font-family: arial, sans-serif;
+}
+
+table {
+    border-collapse: collapse;
+}
+
+table, tr, td {
+    border: 1px solid black;
+}
+
+tr {
+    height: 40px;
+}
+
+td {
+    width: 40px;
+    text-align: center;
+    vertical-align: center;
+}

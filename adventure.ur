@@ -66,14 +66,14 @@ val initializeGame : gameState = {
     Statement = "player's statement", (* The player's currrent utterance. *)
     Message = "game's message", (* A message of the game to the player. *)
     Field = (* The initial game field. *)
-        ((1, 0), ("apple" :: "key" :: "goat" :: [])) :: 
-        ((2, 0), ("wall" :: [])) :: 
-        ((2, 1), ("wall" :: [])) :: 
-        ((1, 1), ("wall" :: [])) :: 
-        ((0, 1), ("door" :: [])) :: 
-        ((0, 2), ("hungry monster" :: [])) :: 
-        ((4, 4), ("friendly gnome" :: [])) :: 
-        ((fieldWidth - 1, fieldHeight - 1), ("trophy" :: [])) :: 
+        ((1, 0), "apple" :: "key" :: "goat" :: []) :: 
+        ((2, 0), "wall" :: []) :: 
+        ((2, 1), "wall" :: []) :: 
+        ((1, 1), "wall" :: []) :: 
+        ((0, 1), "door" :: []) :: 
+        ((0, 2), "hungry monster" :: []) :: 
+        ((4, 4), "friendly gnome" :: []) :: 
+        ((fieldWidth - 1, fieldHeight - 1), "trophy" :: []) :: 
         []}
 
 (* True iff s starts with part. *)
@@ -174,7 +174,9 @@ fun processSay (gs : gameState) (statement : string) : gameState =
     evaluateSituation (update gs {Statement = statement})
 
 (* Produce a list of buttons from a list of button labels. *)
-fun toButtons (sgs : source gameState) (labels : list string) (clicked : gameState -> string -> gameState) : xbody =
+fun toButtons (sgs : source gameState) 
+              (labels : list string) 
+              (clicked : gameState -> string -> gameState) : xbody =
 let
     fun loop (labels : list string) : xbody = 
         case labels of
@@ -190,8 +192,8 @@ in
          <xml><ul>{loop labels}</ul></xml> 
 end
 
-(* Render the game state as XML/HTML. *)
-fun render (sgs : source gameState) : signal xbody =
+(* Render the game field as XML/HTML. *)
+fun renderField (sgs : source gameState) : signal xbody =
     gs <- signal sgs;
     return let
         fun cols (row : int) (col : int) : xtr = 
@@ -212,16 +214,19 @@ fun render (sgs : source gameState) : signal xbody =
             if row < fieldHeight - 1
             then (<xml><tr>{cols row 0}</tr>{rows (row + 1)}</xml>)
             else (<xml><tr>{cols row 0}</tr></xml>)
-        val stuffHere : list string = lookup' gs.Position [] gs.Field
     in
         <xml>
         <table border={1}>{rows 0}</table>
-        <br/>
-        <button value="Left"  onclick={fn _ => set sgs (go gs (-1, 0))}/>
-        <button value="Right" onclick={fn _ => set sgs (go gs (1, 0))}/>
-        <button value="Up"    onclick={fn _ => set sgs (go gs (0, -1))}/>
-        <button value="Down"  onclick={fn _ => set sgs (go gs (0, 1))}/>
-        <br/>
+        </xml> 
+    end
+
+(* Render messages as XML/HTML. *)
+fun renderMessages (sgs : source gameState) : signal xbody =
+    gs <- signal sgs;
+    return let
+        val stuffHere : list string = lookup' gs.Position [] gs.Field
+    in
+        <xml>
         <p>Message: {[gs.Message]}</p>
         <p>Here is:</p> {case stuffHere of 
             | [] => <xml>Nothing</xml>
@@ -249,14 +254,19 @@ fun main () : transaction page =
             <title>Adventure</title>
             <link rel="stylesheet" type="text/css" href="/Adventure/style.css"/>
         </head>
-        <body
-        onkeydown={fn ev => (*alert ("Code " ^ show ev.KeyCode) }*)
-            s <- get state; 
-            (*debug (show ev.KeyCode)*)
+        <body onkeydown={fn ev => (*alert ("Code " ^ show ev.KeyCode) }*)
+            s <- get state; (*debug (show ev.KeyCode)*)
             case lookup (ev.KeyCode + naughtyDebug (show ev.KeyCode)) directions of
                 | None => return ()
                 | Some direction => set state (go s direction)}>
-        <dyn signal={render state} />
+        <dyn signal={renderField state} />
+        <br/>
+        <button value="Left"  onclick={fn _ => s <- get state; set state (go s (-1, 0))}/>
+        <button value="Right" onclick={fn _ => s <- get state; set state (go s (1, 0))}/>
+        <button value="Up"    onclick={fn _ => s <- get state; set state (go s (0, -1))}/>
+        <button value="Down"  onclick={fn _ => s <- get state; set state (go s (0, 1))}/>
+        <br/>
+        <dyn signal={renderMessages state}/>
         <ctextbox source={input} onkeypress={fn ev => 
             if ev.KeyCode = keyReturn then
                 s <- get state; 
@@ -266,5 +276,5 @@ fun main () : transaction page =
         <button value="Submit" onclick={fn _ => 
             s <- get state; 
             t <- get input;
-            set state (processSay s t)} />
+            set state (processSay s t)}/>
         </body></xml>
